@@ -9,7 +9,7 @@
         <module name="effective-java" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel target="8">
+    <bytecodeTargetLevel target="9">
       <module name="effective-java" target="9" />
     </bytecodeTargetLevel>
   </component>
