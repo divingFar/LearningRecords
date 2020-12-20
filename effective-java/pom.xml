@@ -17,13 +17,13 @@
             <version>1.7.26</version>
         </dependency>
 
-
         <!--使用 log4j2 的适配器进行绑定-->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
             <version>2.9.1</version>
             <exclusions>
+        <!--排除一些依赖冲突-->
                 <exclusion>
                     <artifactId>log4j-core</artifactId>
                     <groupId>org.apache.logging.log4j</groupId>
@@ -36,11 +36,12 @@
         </dependency>
 
         <!--log4j2日志门面-->
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>2.11.1</version>
-        </dependency>
+<!--        注释掉应该也可以，照样正常打印日志了-->
+<!--        <dependency>-->
+<!--            <groupId>org.apache.logging.log4j</groupId>-->
+<!--            <artifactId>log4j-api</artifactId>-->
+<!--            <version>2.11.1</version>-->
+<!--        </dependency>-->
         <!--log4j2 日志实现-->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>

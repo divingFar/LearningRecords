@@ -13,7 +13,7 @@ public class Log4j2Test {
     @Test
     public void testQuick()throws Exception{
         // 日志消息输出
-        LOGGER.fatal("fatal");
+        LOGGER.fatal("无敌是真的寂寞");
         LOGGER.error("error");
         LOGGER.warn("warn");
         LOGGER.info("inf");
