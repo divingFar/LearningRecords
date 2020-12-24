@@ -1542,7 +1542,7 @@ Java1.5开始提供了枚举类型.
 * 静态的`values()`方法可以按照声明顺序返回它的值数组.
 
 为了将数据与枚举常量关联, 要声明实例域, 并编写一个带有数据并将数据保存在域中的构造器. 
-枚举天生不可变, 因此所有的域都是final的.
+枚举天生不可变**, 因此所有的域都是final的.**
 
 有时候需要将不同的行为与每个常量关联起来, 可以在枚举中定义抽象方法, 这样添加新的常量的时候就必须提供这个方法.
 
@@ -1550,11 +1550,155 @@ Java1.5开始提供了枚举类型.
 
 枚举的性能与int常量相比是相当的, 有个微小的性能缺点, 即装载和初始化枚举时会有空间和时间的成本, 但是实践上通常是可忽略的.
 
+```java
+// Enum type with data and behavior  (159-160)
+public enum Planet {
+    MERCURY(3.302e+23, 2.439e6),
+    VENUS  (4.869e+24, 6.052e6),
+    EARTH  (5.975e+24, 6.378e6),
+    MARS   (6.419e+23, 3.393e6),
+    JUPITER(1.899e+27, 7.149e7),
+    SATURN (5.685e+26, 6.027e7),
+    URANUS (8.683e+25, 2.556e7),
+    NEPTUNE(1.024e+26, 2.477e7);
+
+    private final double mass;           // In kilograms
+    private final double radius;         // In meters
+    private final double surfaceGravity; // In m / s^2
+
+    // Universal gravitational constant in m^3 / kg s^2
+    private static final double G = 6.67300E-11;
+
+    // Constructor
+    Planet(double mass, double radius) {
+        this.mass = mass;
+        this.radius = radius;
+        surfaceGravity = G * mass / (radius * radius);
+    }
+
+    public double mass()           { return mass; }
+    public double radius()         { return radius; }
+    public double surfaceGravity() { return surfaceGravity; }
+
+    public double surfaceWeight(double mass) {
+        return mass * surfaceGravity;  // F = ma
+    }
+}
+
+```
+
+```java
+// Takes earth-weight and prints table of weights on all planets (Page 160)
+public class WeightTable {
+   public static void main(String[] args) {
+      double earthWeight = Double.parseDouble(args[0]);
+      double mass = earthWeight / Planet.EARTH.surfaceGravity();
+      for (Planet p : Planet.values())
+         System.out.printf("Weight on %s is %f%n",
+                 p, p.surfaceWeight(mass));
+   }
+}
+```
+
+```java
+// Enum type with constant-specific class bodies and data (Pages 163-4)
+public enum Operation {
+    PLUS("+") {
+        public double apply(double x, double y) { return x + y; }
+    },
+    MINUS("-") {
+        public double apply(double x, double y) { return x - y; }
+    },
+    TIMES("*") {
+        public double apply(double x, double y) { return x * y; }
+    },
+    DIVIDE("/") {
+        public double apply(double x, double y) { return x / y; }
+    };
+
+    private final String symbol;
+
+    Operation(String symbol) { this.symbol = symbol; }
+
+    @Override public String toString() { return symbol; }
+    // 上面的+-*/都必须对这个方法进行覆盖
+    public abstract double apply(double x, double y);
+
+    // Implementing a fromString method on an enum type (Page 164)
+    private static final Map<String, Operation> stringToEnum =
+            Stream.of(values()).collect(
+                    toMap(Object::toString, e -> e));
+
+    // Returns Operation for string, if any
+    public static Optional<Operation> fromString(String symbol) {
+        return Optional.ofNullable(stringToEnum.get(symbol));
+    }
+
+    public static void main(String[] args) {
+        double x = Double.parseDouble(args[0]);
+        double y = Double.parseDouble(args[1]);
+        for (Operation op : Operation.values())
+            System.out.printf("%f %s %f = %f%n",
+                    x, op, y, op.apply(x, y));
+    }
+}
+```
+
+
+
+枚举中的switch语句不是在枚举中实现特定于常量的行为的一种很好的选择
+
+枚举中的switch语句适合于给外部的枚举类型增加特定于常量的行为，假如，假设Operation枚举不受你的控制，
+
+你希望他有一个实例方法来返回每个运算的反运算，你可以用下列静态方法来模拟这种效果：
+
+```java
+// Switch on an enum to simulate a missing method (Page 167)
+//switch语句在枚举类中的使用
+public class Inverse {
+    public static Operation inverse(Operation op) {
+        switch(op) {
+            case PLUS:   return Operation.MINUS;
+            case MINUS:  return Operation.PLUS;
+            case TIMES:  return Operation.DIVIDE;
+            case DIVIDE: return Operation.TIMES;
+
+            default:  throw new AssertionError("Unknown op: " + op);
+        }
+    }
+
+    public static void main(String[] args) {
+        double x = Double.parseDouble(args[0]);
+        double y = Double.parseDouble(args[1]);
+        for (Operation op : Operation.values()) {
+            Operation invOp = inverse(op);
+            System.out.printf("%f %s %f %s %f = %f%n",
+                    x, op, y, invOp, y, invOp.apply(op.apply(x, y), y));
+        }
+    }
+}
+```
+
+枚举使用场景：每当需要一组固定常量，并且在编译时就知道其成员的时候，就应该使用枚举类型。
+
 ## 第35条 用实例域代替序数
 
 所有的枚举都有一个`ordinal()`方法, 返回每个枚举常量在类型中的数字位置.
 
 永远不要根据枚举的序数导出与它关联的值, 而是要将它保存在一个实例域中.
+
+```java
+// Enum with integer data stored in an instance field (Page 168)
+public enum Ensemble {
+    SOLO(1), DUET(2), TRIO(3), QUARTET(4), QUINTET(5),
+    SEXTET(6), SEPTET(7), OCTET(8), DOUBLE_QUARTET(8),
+    NONET(9), DECTET(10), TRIPLE_QUARTET(12);
+
+    private final int numberOfMusicians;
+    Ensemble(int size) { this.numberOfMusicians = size; }
+    public int numberOfMusicians() { return numberOfMusicians; }
+}
+```
 
 ## 第36条 用EnumSet代替位域
 
@@ -1568,11 +1712,93 @@ Java1.5开始提供了枚举类型.
 
 java.util提供了`EnumSet`类来有效地表示从单个枚举类型中提取的多个值的多个集合.
 
+```java
+// EnumSet - a modern replacement for bit fields (Page 170)
+public class Text {
+    public enum Style {BOLD, ITALIC, UNDERLINE, STRIKETHROUGH}
+
+    // Any Set could be passed in, but EnumSet is clearly best
+    public void applyStyles(Set<Style> styles) {
+        System.out.printf("Applying styles %s to text%n",
+                Objects.requireNonNull(styles));
+    }
+
+    // Sample use
+    public static void main(String[] args) {
+        Text text = new Text();
+        text.applyStyles(EnumSet.of(Style.BOLD, Style.ITALIC));
+    }
+}
+```
+
 ## 第37条 用EnumMap代替序数索引
 
 有时候, 你可能会见到用`ordinal`方法来索引数组的代码.
 
 利用`EnumMap`可以更好地解决问题. (一维和多维的例子.)
+
+```java
+// Using an EnumMap to associate data with an enum (Pages 171-3)
+
+// Simplistic class representing a plant (Page 171)
+class Plant {
+    enum LifeCycle { ANNUAL, PERENNIAL, BIENNIAL }
+
+    final String name;
+    final LifeCycle lifeCycle;
+
+    Plant(String name, LifeCycle lifeCycle) {
+        this.name = name;
+        this.lifeCycle = lifeCycle;
+    }
+
+    @Override public String toString() {
+        return name;
+    }
+
+    public static void main(String[] args) {
+        Plant[] garden = {
+            new Plant("Basil",    LifeCycle.ANNUAL),
+            new Plant("Carroway", LifeCycle.BIENNIAL),
+            new Plant("Dill",     LifeCycle.ANNUAL),
+            new Plant("Lavendar", LifeCycle.PERENNIAL),
+            new Plant("Parsley",  LifeCycle.BIENNIAL),
+            new Plant("Rosemary", LifeCycle.PERENNIAL)
+        };
+
+        // Using ordinal() to index into an array - DON'T DO THIS!  (Page 171)
+        Set<Plant>[] plantsByLifeCycleArr =
+                (Set<Plant>[]) new Set[LifeCycle.values().length];
+        for (int i = 0; i < plantsByLifeCycleArr.length; i++)
+            plantsByLifeCycleArr[i] = new HashSet<>();
+        for (Plant p : garden)
+            plantsByLifeCycleArr[p.lifeCycle.ordinal()].add(p);
+        // Print the results
+        for (int i = 0; i < plantsByLifeCycleArr.length; i++) {
+            System.out.printf("%s: %s%n",
+                    LifeCycle.values()[i], plantsByLifeCycleArr[i]);
+        }
+
+        // Using an EnumMap to associate data with an enum (Page 172)
+        Map<LifeCycle, Set<Plant>> plantsByLifeCycle =
+                new EnumMap<>(LifeCycle.class);
+        for (LifeCycle lc : LifeCycle.values())
+            plantsByLifeCycle.put(lc, new HashSet<>());
+        for (Plant p : garden)
+            plantsByLifeCycle.get(p.lifeCycle).add(p);
+        System.out.println(plantsByLifeCycle);
+
+        // Naive stream-based approach - unlikely to produce an EnumMap!  (Page 172)
+        System.out.println(Arrays.stream(garden)
+                .collect(groupingBy(p -> p.lifeCycle)));
+
+        // Using a stream and an EnumMap to associate data with an enum (Page 173)
+        System.out.println(Arrays.stream(garden)
+                .collect(groupingBy(p -> p.lifeCycle,
+                        () -> new EnumMap<>(LifeCycle.class), toSet())));
+    }
+}
+```
 
 ## 第38条 用接口模拟可扩展的枚举
 
@@ -1585,6 +1811,93 @@ Java语言上是不支持枚举继承的, 这并不意外, 因为枚举的扩展
 
 虽然无法编写可扩展的枚举类型, 却可以通过编写接口以及实现该接口的基础枚举类型, 对它进行模拟. 这样允许客户端编写自己的枚举来实现接口. 
 如果API是根据接口编写的, 那么在可以使用基础枚举类型的任何地方, 也都可以使用这些枚举.
+
+```java
+public interface Operation {
+    double apply(double x, double y);
+}
+```
+
+```java
+// Emulated extensible enum using an interface - Basic implementation (Page 176)
+public enum BasicOperation implements Operation {
+    PLUS("+") {
+        public double apply(double x, double y) { return x + y; }
+    },
+    MINUS("-") {
+        public double apply(double x, double y) { return x - y; }
+    },
+    TIMES("*") {
+        public double apply(double x, double y) { return x * y; }
+    },
+    DIVIDE("/") {
+        public double apply(double x, double y) { return x / y; }
+    };
+
+    private final String symbol;
+
+    BasicOperation(String symbol) {
+        this.symbol = symbol;
+    }
+
+    @Override public String toString() {
+        return symbol;
+    }
+}
+```
+
+
+
+
+
+```java
+// Emulated extensible enum (Pages 176-9)
+public enum ExtendedOperation implements Operation {
+    EXP("^") {
+        public double apply(double x, double y) {
+            return Math.pow(x, y);
+        }
+    },
+    REMAINDER("%") {
+        public double apply(double x, double y) {
+            return x % y;
+        }
+    };
+    private final String symbol;
+    ExtendedOperation(String symbol) {
+        this.symbol = symbol;
+    }
+    @Override public String toString() {
+        return symbol;
+    }
+
+//    // Using an enum class object to represent a collection of extended enums (page 178)
+//    public static void main(String[] args) {
+//        double x = Double.parseDouble(args[0]);
+//        double y = Double.parseDouble(args[1]);
+//        test(ExtendedOperation.class, x, y);
+//    }
+//    private static <T extends Enum<T> & Operation> void test(
+//            Class<T> opEnumType, double x, double y) {
+//        for (Operation op : opEnumType.getEnumConstants())
+//            System.out.printf("%f %s %f = %f%n",
+//                    x, op, y, op.apply(x, y));
+//    }
+
+    // Using a collection instance to represent a collection of extended enums (page 178)
+    public static void main(String[] args) {
+        double x = Double.parseDouble(args[0]);
+        double y = Double.parseDouble(args[1]);
+        test(Arrays.asList(ExtendedOperation.values()), x, y);
+    }
+    private static void test(Collection<? extends Operation> opSet,
+                             double x, double y) {
+        for (Operation op : opSet)
+            System.out.printf("%f %s %f = %f%n",
+                    x, op, y, op.apply(x, y));
+    }
+}
+```
 
 ## 第39条 注解优先于命名模式
 
