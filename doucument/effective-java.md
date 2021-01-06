@@ -2260,6 +2260,47 @@ Java 8引入的lambda和方法引用更增加了可能会引起重载解析歧�
 
 在定义参数数目不定的方法时, 可变参数是一种很方便的方式, 但是它们不应该被过度滥用.
 
+```java
+// Sample uses of varargs (Pages 245-6)
+public class Varargs {
+    // Simple use of varargs (Page 245)
+    static int sum(int... args) {
+        int sum = 0;
+        for (int arg : args)
+            sum += arg;
+        return sum;
+    }
+
+//    // The WRONG way to use varargs to pass one or more arguments! (Page 245)
+//    static int min(int... args) {
+//        if (args.length == 0)
+//            throw new IllegalArgumentException("Too few arguments");
+//        int min = args[0];
+//        for (int i = 1; i < args.length; i++)
+//            if (args[i] < min)
+//                min = args[i];
+//        return min;
+//    }
+
+    // The right way to use varargs to pass one or more arguments (Page 246)
+    static int min(int firstArg, int... remainingArgs) {
+        int min = firstArg;
+        for (int arg : remainingArgs)
+            if (arg < min)
+                min = arg;
+        return min;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(sum(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+        System.out.println(min(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+    }
+}
+
+```
+
+
+
 ## 第54条 返回零长度的数组或集合, 而不是null
 
 返回类型为数组或集合的方法, 应该返回一个零长度的数组或者集合, 没理由返回null. -> 不好用, 容易出错, 没有性能优势.
@@ -2306,13 +2347,64 @@ Optional也不适用于性能关键的情形.
 通常, 用optional作为key, value或者集合中的元素都是不合适的, 会造成不必要的复杂性.
 把optional保存在字段中也通常是一个bad smell. 但是也有例外, 比如想要合理地表达absence.
 
+```java
+// Using Optional<T> as a return type (Pages 249-251)
+public class Max {
+//    // Returns maximum value in collection - throws exception if empty (Page 249)
+//    public static <E extends Comparable<E>> E max(Collection<E> c) {
+//        if (c.isEmpty())
+//            throw new IllegalArgumentException("Empty collection");
+//
+//        E result = null;
+//        for (E e : c)
+//            if (result == null || e.compareTo(result) > 0)
+//                result = Objects.requireNonNull(e);
+//
+//        return result;
+//    }
+
+//    // Returns maximum value in collection as an Optional<E> (Page 250)
+//    public static <E extends Comparable<E>>
+//    Optional<E> max(Collection<E> c) {
+//        if (c.isEmpty())
+//            return Optional.empty();
+//
+//        E result = null;
+//        for (E e : c)
+//            if (result == null || e.compareTo(result) > 0)
+//                result = Objects.requireNonNull(e);
+//
+//        return Optional.of(result);
+//    }
+
+    // Returns max val in collection as Optional<E> - uses stream (Page 250)
+    public static <E extends Comparable<E>>
+    Optional<E> max(Collection<E> c) {
+        return c.stream().max(Comparator.naturalOrder());
+    }
+
+    public static void main(String[] args) {
+        List<String> words = Arrays.asList(args);
+
+        System.out.println(max(words));
+
+        // Using an optional to provide a chosen default value (Page 251)
+        String lastWordInLexicon = max(words).orElse("No words...");
+        System.out.println(lastWordInLexicon);
+    }
+}
+
+```
+
+
+
 ## 第56条 为所有导出的API元素编写文档注释
 
 Javadoc可以根据源代码自动生成API文档.
 
 要正确地为API建立文档, 就必须在每个导出的类, 接口, 构造函数, 方法和字段声明之前加上doc注释.
 
-方法的文档注释应该简洁地描述出它和客户端之间的约定. 这个约定应该说明这个方法做了什么, 而不是如何完成这项工作的.
+方法的文档注释应该简洁地描述出它和客户端之间的约定. **这个约定应该说明这个方法做了什么, 而不是如何完成这项工作的.**
 
 方法的文档注释还应该列举出:
 
@@ -2342,7 +2434,7 @@ Java 9中Javadoc utility会忽略`@implSpec`, 除非你在命令行加上"implSp
 每个文档注释的第一句话成了该注释所属元素的概要描述(summary description).
 为了避免混乱, 在类或者接口中不应该有两个成员或者构造方法有相同的概要描述. 尤其要注意方法重载.
 
-对于方法和构造器而言, 概要描述应该是个完整的动词短语, 它描述了该方法所执行的动作. 
+**对于方法和构造器而言, 概要描述应该是个完整的动词短语, 它描述了该方法所执行的动作.** 
 对于类, 接口和域, 概要描述应该是一个名词短语.
 
 Java 9引入了index, 方面文档查询. 偶尔你需要用`{@index}`加入额外的index.
@@ -2364,11 +2456,107 @@ Java 9引入了index, 方面文档查询. 偶尔你需要用`{@index}`加入额�
 Javadoc可以继承方法注释.
 你可以用`{@inheritDoc}`标签来继承部分文档注释. (tricky and has some limitations).
 
+```java
+
+// Documentation comment examples (Pages 255-9)
+public class DocExamples<E> {
+    // Method comment (Page 255)
+    /**
+     * Returns the element at the specified position in this list.
+     *
+     * <p>This method is <i>not</i> guaranteed to run in constant
+     * time. In some implementations it may run in time proportional
+     * to the element position.
+     *
+     * @param  index index of element to return; must be
+     *         non-negative and less than the size of this list
+     * @return the element at the specified position in this list
+     * @throws IndexOutOfBoundsException if the index is out of range
+     *         ({@code index < 0 || index >= this.size()})
+     */
+    E get(int index) {
+        return null;
+    }
+
+    // Use of @implSpec to describe self-use patterns & other visible implementation details. (Page 256)
+    /**
+     * Returns true if this collection is empty.
+     *
+     * @implSpec This implementation returns {@code this.size() == 0}.
+     *
+     * @return true if this collection is empty
+     */
+    public boolean isEmpty() {
+        return false;
+    }
+
+    // Use of the @literal tag to include HTML and javadoc metacharacters in javadoc comments. (Page 256)
+    /**
+     * A geometric series converges if {@literal |r| < 1}.
+     */
+    public void fragment() {
+    }
+
+    // Controlling summary description when there is a period in the first "sentence" of doc comment. (Page 257)
+    /**
+     * A suspect, such as Colonel Mustard or {@literal Mrs. Peacock}.
+     */
+    public enum FixedSuspect {
+        MISS_SCARLETT, PROFESSOR_PLUM, MRS_PEACOCK, MR_GREEN, COLONEL_MUSTARD, MRS_WHITE
+    }
+
+
+    // Generating a javadoc index entry in Java 9 and later releases. (Page 258)
+    /**
+     * This method complies with the {@index IEEE 754} standard.
+     */
+    public void fragment2() {
+    }
+
+    // Documenting enum constants (Page 258)
+    /**
+     * An instrument section of a symphony orchestra.
+     */
+    public enum OrchestraSection {
+        /** Woodwinds, such as flute, clarinet, and oboe. */
+        WOODWIND,
+
+        /** Brass instruments, such as french horn and trumpet. */
+        BRASS,
+
+        /** Percussion instruments, such as timpani and cymbals. */
+        PERCUSSION,
+
+        /** Stringed instruments, such as violin and cello. */
+        STRING;
+    }
+
+    // Documenting an annotation type (Page 259)
+    /**
+     * Indicates that the annotated method is a test method that
+     * must throw the designated exception to pass.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface ExceptionTest {
+        /**
+         * The exception that the annotated test method must throw
+         * in order to pass. (The test is permitted to throw any
+         * subtype of the type described by this class object.)
+         */
+        Class<? extends Throwable> value();
+    }
+}
+
+```
+
+
+
 # Chapter 9 通用程序设计
 
 ## 第57条 将局部变量的作用域最小化
 
-要使局部变量的作用域最小化, 最有力的方法就是在第一次使用它的地方声明.
+要使局部变量的作用域最小化, **最有力的方法就是在第一次使用它的地方声明.**
 
 几乎每个局部变量的声明都应该包含一个初始化表达式. (例外: try-catch).
 
@@ -2413,6 +2601,44 @@ for-each循环可以用在任何实现了`Iterable`接口的对象上.
 
 `BigDecimal`没有原生类型使用起来方便, 而且会有性能影响. 优点是可以自己选择舍入模式.
 `int`(9位)或`long`(18位)需要自己处理小数点移位.
+
+```java
+public class BigDecimalChange {
+    public static void main(String[] args) {
+        final BigDecimal TEN_CENTS = new BigDecimal(".10");
+
+        int itemsBought = 0;
+        BigDecimal funds = new BigDecimal("1.00");
+        for (BigDecimal price = TEN_CENTS;
+             funds.compareTo(price) >= 0;
+             price = price.add(TEN_CENTS)) {
+            funds = funds.subtract(price);
+            itemsBought++;
+        }
+        System.out.println(itemsBought + " items bought.");
+        System.out.println("Money left over: $" + funds);
+    }
+}
+
+```
+
+```java
+public class IntChange {
+    public static void main(String[] args) {
+        int itemsBought = 0;
+        int funds = 100;
+        for (int price = 10; funds >= price; price += 10) {
+            funds -= price;
+            itemsBought++;
+        }
+        System.out.println(itemsBought + " items bought.");
+        System.out.println("Cash left over: " + funds + " cents");
+    }
+}
+
+```
+
+
 
 ## 第61条 基本类型优先于装箱基本类型
 
@@ -2472,6 +2698,57 @@ for-each循环可以用在任何实现了`Iterable`接口的对象上.
 也有一些情形, 通过以非常有限的形式利用, 你可以获得反射的好处, 而不被它的cost影响:
 如果你编写的程序必须要与编译时未知的类一起工作, 如有可能, 就应该仅仅使用反射机制来实例化对象, 而访问对象时则使用编译时已知的某个接口或者超类.
 
+```java
+// Reflective instantiaion demo (Page 283)
+public class ReflectiveInstantiation {
+    // Reflective instantiation with interface access
+    public static void main(String[] args) {
+        // Translate the class name into a Class object
+        Class<? extends Set<String>> cl = null;
+        try {
+            cl = (Class<? extends Set<String>>)  // Unchecked cast!
+                    Class.forName(args[0]);
+        } catch (ClassNotFoundException e) {
+            fatalError("Class not found.");
+        }
+
+        // Get the constructor
+        Constructor<? extends Set<String>> cons = null;
+        try {
+            cons = cl.getDeclaredConstructor();
+        } catch (NoSuchMethodException e) {
+            fatalError("No parameterless constructor");
+        }
+
+        // Instantiate the set
+        Set<String> s = null;
+        try {
+            s = cons.newInstance();
+        } catch (IllegalAccessException e) {
+            fatalError("Constructor not accessible");
+        } catch (InstantiationException e) {
+            fatalError("Class not instantiable.");
+        } catch (InvocationTargetException e) {
+            fatalError("Constructor threw " + e.getCause());
+        } catch (ClassCastException e) {
+            fatalError("Class doesn't implement Set");
+        }
+
+        // Exercise the set
+        s.addAll(Arrays.asList(args).subList(1, args.length));
+        System.out.println(s);
+    }
+
+    private static void fatalError(String msg) {
+        System.err.println(msg);
+        System.exit(1);
+    }
+}
+
+```
+
+
+
 ## 第66条 谨慎地使用本地方法
 
 Java Native Interface (JNI)允许Java应用程序可以调用本地方法(native method), 即本地程序设计语言(C或者C++)来编写的特殊方法.
@@ -2517,7 +2794,7 @@ Java平台建立了一整套很好的命名惯例(naming convention).
 * 方法返回非布尔值时, 有时用名词命名, 如`size`, 有时加`get`.
 * 转换类型的方法通常用`toType`.
 * 返回不同视图的方法用`asType`.
-* 还有`typeValue`和静态工厂方法等.
+* 还有`typeValue`如intValue和静态工厂方法from,of,valueOf、instance等.
 
 # Chapter 10 异常
 
